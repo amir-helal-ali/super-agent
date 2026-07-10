@@ -23,11 +23,9 @@ COPY . .
 # متغيرات البيئة للبناء
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-ENV DISABLE_ESLINT_PLUGIN=true
-ENV NEXT_TYPE_CHECK=false
 
-# بناء المشروع (تجاهل lint و type errors)
-RUN npx next build --no-lint
+# بناء المشروع
+RUN npm run build
 
 # === المرحلة 3: الإنتاج ===
 FROM node:20-slim AS runner
