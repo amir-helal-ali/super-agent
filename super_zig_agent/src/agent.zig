@@ -230,37 +230,13 @@ pub const SuperAgent = struct {
 
     /// هل يحتاج بحثاً على الويب؟
     fn needsWebSearch(self: *SuperAgent, input: []const u8) bool {
-        const web_indicators = [_][]const u8{
-            "ابحث", "بحث", "اخر", "أخبار", "الآن", "اليوم", "حالياً", "ما هو",
-            "search", "latest", "news", "current", "today", "now",
-        };
         _ = self;
-        for (web_indicators) |ind| {
-            if (std.mem.indexOf(u8, input, ind) != null) return true;
-        }
-        return false;
+        return tools.web_search.needsWebSearch(input);
     }
 
-    /// بحث على الويب (DuckDuckGo HTML)
     fn searchWeb(self: *SuperAgent, query: []const u8) !?[]u8 {
-        const search_url = try std.fmt.allocPrint(
-            self.allocator,
-            "https://html.duckduckgo.com/html/?q={s}",
-            .{query},
-        );
-        defer self.allocator.free(search_url);
-
-        var response = web.fetch(self.allocator, search_url, 1024 * 1024) catch return null;
-        defer response.deinit();
-
-        // استخراج النص
-        const text = web.extractText(self.allocator, response.body) catch return null;
-        defer self.allocator.free(text);
-
-        // اقتطاع لأول 2000 حرف
-        const max_len = @min(text.len, 2000);
-        const result = try self.allocator.dupe(u8, text[0..max_len]);
-        return result;
+        const search_query = tools.web_search.extractQuery(query);
+        return tools.web_search.search(self.allocator, search_query) catch null;
     }
 
     /// توليد رد باستخدام النموذج المحلي

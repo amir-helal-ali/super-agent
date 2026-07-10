@@ -185,6 +185,17 @@ fn trainOnBuiltinCorpus(trainer: *Trainer) !void {
             continue;
         };
     }
+
+    // multi-epoch training
+    const epochs: usize = 3;
+    std.debug.print("[train] multi-epoch training ({d} epochs)\n", .{epochs});
+    for (0..epochs) |epoch| {
+        std.debug.print("[train] === Epoch {d}/{d} ===\n", .{ epoch + 1, epochs });
+        for (corpus) |text| {
+            _ = trainer.trainOnText(text) catch continue;
+        }
+    }
+
     std.debug.print("[train] builtin corpus training done\n", .{});
 }
 
