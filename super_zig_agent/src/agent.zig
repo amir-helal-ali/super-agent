@@ -10,6 +10,7 @@ const tools = @import("tools/mod.zig");
 const web = @import("web/mod.zig");
 const knowledge = @import("knowledge.zig");
 const context_mod = @import("context.zig");
+const ngram = @import("ngram.zig");
 
 pub const AgentConfig = struct {
     name: []const u8 = "Super Agent",
@@ -41,6 +42,7 @@ pub const SuperAgent = struct {
     memory: Memory,
     rng: std.Random.DefaultPrng,
     context: context_mod.ConversationContext,
+    ngram_model: ngram.NGramModel,
 
     pub fn init(allocator: std.mem.Allocator, config: AgentConfig) !SuperAgent {
         var agent = SuperAgent{
@@ -51,7 +53,11 @@ pub const SuperAgent = struct {
             .memory = try Memory.init(allocator, config.memory_dir),
             .rng = nn.tensor.createRng(@bitCast(std.time.timestamp())),
             .context = context_mod.ConversationContext.init(allocator),
+            .ngram_model = ngram.NGramModel.init(allocator),
         };
+
+        // تدريب n-gram على corpus مدمج
+        agent.ngram_model.trainOnBuiltinCorpus() catch {};
 
         // محاولة تحميل النموذج المُدرّب
         try agent.loadModel();
@@ -64,6 +70,7 @@ pub const SuperAgent = struct {
         if (self.tokenizer) |*t| t.deinit();
         self.memory.deinit();
         self.context.deinit();
+        self.ngram_model.deinit();
     }
 
     /// تحميل النموذج والـ tokenizer
@@ -265,37 +272,43 @@ pub const SuperAgent = struct {
 
     /// توليد رد باستخدام النموذج المحلي
     fn generateResponse(self: *SuperAgent, input: []const u8) ![]u8 {
-        if (self.tokenizer == null or self.model == null) {
-            // نمط بدون نموذج - ردود محددة
-            return self.fallbackResponse(input);
+        // 1. محاولة استخدام n-gram model (سريع ومتماسك)
+        if (self.ngram_model.trained) {
+            const ngram_result = self.ngram_model.generate(self.allocator, input, 20) catch null;
+            if (ngram_result) |r| {
+                if (r.len > input.len + 5) {
+                    return r;
+                }
+                self.allocator.free(r);
+            }
         }
 
-        // ترميز المدخل
-        var tokens = try self.tokenizer.?.encode(input);
-        defer tokens.deinit();
+        // 2. محاولة استخدام transformer model
+        if (self.tokenizer != null and self.model != null) {
+            var tokens = try self.tokenizer.?.encode(input);
+            defer tokens.deinit();
 
-        // إضافة BOS في البداية
-        var prompt = std.ArrayList(u32).init(self.allocator);
-        defer prompt.deinit();
-        try prompt.append(Tokenizer.BOS);
-        try prompt.appendSlice(tokens.items);
+            var prompt = std.ArrayList(u32).init(self.allocator);
+            defer prompt.deinit();
+            try prompt.append(Tokenizer.BOS);
+            try prompt.appendSlice(tokens.items);
 
-        // توليد
-        var random = self.rng.random();
-        var output = self.model.?.generate(prompt.items, 100, 0.7, &random) catch {
-            return self.fallbackResponse(input);
-        };
-        defer output.deinit();
+            var random = self.rng.random();
+            var output = self.model.?.generateAdvanced(prompt.items, 50, 0.8, 30, 1.2, &random) catch {
+                return self.fallbackResponse(input);
+            };
+            defer output.deinit();
 
-        // فك الترميز
-        var decoded = try self.tokenizer.?.decode(output.items);
-        defer decoded.deinit();
+            var decoded = try self.tokenizer.?.decode(output.items);
+            defer decoded.deinit();
 
-        if (decoded.items.len == 0) {
-            return self.fallbackResponse(input);
+            if (decoded.items.len > 3) {
+                return self.allocator.dupe(u8, decoded.items);
+            }
         }
 
-        return self.allocator.dupe(u8, decoded.items);
+        // 3. fallback
+        return self.fallbackResponse(input);
     }
 
     /// رد احتياطي عندما لا يوجد نموذج مُدرّب
@@ -351,6 +364,9 @@ pub const SuperAgent = struct {
 
     /// تدريب على نص جديد
     pub fn learn(self: *SuperAgent, text: []const u8) !void {
+        // تدريب n-gram model (يعمل دائماً)
+        self.ngram_model.train(text) catch {};
+
         if (self.tokenizer == null) return;
 
         var it = std.mem.tokenizeAny(u8, text, " \t\n\r.,;:!?'\"()[]{}");
