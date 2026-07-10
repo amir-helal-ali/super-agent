@@ -1,7 +1,5 @@
 # docker-compose.yml - Super Agent Stack
-# تشغيل خادم Zig + واجهة Next.js + Caddy Gateway
-
-version: '3.8'
+# تشغيل خادم Zig + واجهة Next.js + Caddy Gateway (اختياري)
 
 services:
   # === خادم Zig Backend ===

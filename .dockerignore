@@ -1,35 +1,44 @@
-# .dockerignore
+# Dependencies
 node_modules
-.next
-.git
-.gitignore
-*.md
-.env*
-.eslintcache
-.turbo
-dist
-build
-coverage
-.nyc_output
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.DS_Store
-Thumbs.db
 
-# Zig
+# Next.js
+.next
+out
+
+# Zig build artifacts (لا ننسخها للواجهة)
 super_zig_agent/.zig-cache
 super_zig_agent/zig-out
 super_zig_agent/data
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
 
 # Docker
 Dockerfile
 docker-compose.yml
 .dockerignore
 
-# IDE
-.vscode
-.idea
-*.swp
-*.swo
+# Misc
+tool-results
+upload
+download
+skills
+.local
+.zscripts

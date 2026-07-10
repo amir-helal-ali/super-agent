@@ -1,4 +1,5 @@
 # .dockerignore لخادم Zig
+# build context = super_zig_agent/ directory
 .zig-cache
 zig-out
 data

@@ -1,5 +1,8 @@
 # Dockerfile لخادم Zig Backend - Super Agent
 # متعدد المراحل للحصول على أصغر صورة ممكنة
+#
+# ملاحظة: هذا الملف يعمل مع build context = super_zig_agent/ 
+# (كما هو محدد في docker-compose.yml)
 
 # === المرحلة 1: بناء Zig ===
 FROM debian:bookworm-slim AS zig-builder
@@ -20,12 +23,11 @@ RUN curl -sL https://ziglang.org/download/0.14.0/zig-linux-x86_64-0.14.0.tar.xz 
     && rm zig.tar.xz \
     && zig version
 
-# نسخ كود المصدر
+# نسخ كود المصدر (build context هو super_zig_agent/ نفسها)
 WORKDIR /app
-COPY super_zig_agent/ ./super_zig_agent/
+COPY . .
 
 # بناء المشروع بـ ReleaseFast
-WORKDIR /app/super_zig_agent
 RUN zig build --release=fast
 
 # === المرحلة 2: الصورة النهائية ===
@@ -35,14 +37,15 @@ FROM debian:bookworm-slim AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libgcc-s1 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # إنشاء مستخدم غير جذر
 RUN useradd -m -s /bin/bash agent
 
 # نسخ الـ binary من مرحلة البناء
-COPY --from=zig-builder /app/super_zig_agent/zig-out/bin/super-agent /app/super-agent
-COPY --from=zig-builder /app/super_zig_agent/zig-out/bin/train-agent /app/train-agent
+COPY --from=zig-builder /app/zig-out/bin/super-agent /app/super-agent
+COPY --from=zig-builder /app/zig-out/bin/train-agent /app/train-agent
 
 # إنشاء مجلدات البيانات
 RUN mkdir -p /app/data/model /app/data/memory /app/data/workspace \
