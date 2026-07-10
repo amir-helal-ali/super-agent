@@ -8,6 +8,7 @@ const Tokenizer = @import("tokenizer.zig").Tokenizer;
 const Memory = @import("memory.zig").Memory;
 const tools = @import("tools/mod.zig");
 const web = @import("web/mod.zig");
+const knowledge = @import("knowledge.zig");
 
 pub const AgentConfig = struct {
     name: []const u8 = "Super Agent",
@@ -299,29 +300,37 @@ pub const SuperAgent = struct {
 
     /// رد احتياطي عندما لا يوجد نموذج مُدرّب
     fn fallbackResponse(self: *SuperAgent, input: []const u8) ![]u8 {
-        // ردود بسيطة للأسئلة الشائعة
+        // 1. البحث في قاعدة المعرفة أولاً
+        if (knowledge.search(input)) |response| {
+            return self.allocator.dupe(u8, response);
+        }
+
+        // 2. ردود للأسئلة الشائعة
         if (std.mem.indexOf(u8, input, "مرحبا") != null or
             std.mem.indexOf(u8, input, "السلام") != null or
-            std.mem.indexOf(u8, input, "اهلا") != null)
+            std.mem.indexOf(u8, input, "اهلا") != null or
+            std.mem.indexOf(u8, input, "hello") != null)
         {
-            return self.allocator.dupe(u8, "مرحبا بك! أنا Super Agent - وكيل ذكاء اصطناعي خارق خفيف الوزن. كيف يمكنني مساعدتك؟");
+            return self.allocator.dupe(u8, "مرحبا بك! أنا Super Agent - وكيل ذكاء اصطناعي خارق خفيف الوزن. كيف يمكنني مساعدتك؟\n\nاكتب 'مساعدة' لعرض الأوامر المتاحة.");
         }
 
-        if (std.mem.indexOf(u8, input, "من انت") != null or
-            std.mem.indexOf(u8, input, "من أنت") != null or
-            std.mem.indexOf(u8, input, "اسمك") != null)
-        {
-            return self.allocator.dupe(u8, "أنا Super Agent - وكيل ذكاء اصطناعي مبني بلغة Zig، أعمل على 2GB RAM ومعالج 4 cores بدون GPU. أتعلم من الإنترنت تلقائياً.");
+        if (std.mem.indexOf(u8, input, "شكرا") != null or std.mem.indexOf(u8, input, "thank") != null) {
+            return self.allocator.dupe(u8, "العفو! سعيد بمساعدتك. هل لديك سؤال آخر؟");
         }
 
-        if (std.mem.indexOf(u8, input, "شكرا") != null) {
-            return self.allocator.dupe(u8, "العفو! سعيد بمساعدتك.");
+        if (std.mem.indexOf(u8, input, "وداعا") != null or std.mem.indexOf(u8, input, "مع السلامة") != null or std.mem.indexOf(u8, input, "bye") != null) {
+            return self.allocator.dupe(u8, "إلى اللقاء! كان من دواعي سروري مساعدتك.");
         }
 
-        // رد عام
+        // 3. محاولة الرد بناءً على كلمات مفتاحية
+        if (std.mem.indexOf(u8, input, "كيف حالك") != null) {
+            return self.allocator.dupe(u8, "أنا بخير، شكراً لسؤالك! أنا جاهز لمساعدتك في أي شيء.");
+        }
+
+        // 4. رد عام مفيد
         return std.fmt.allocPrint(
             self.allocator,
-            "استلمت رسالتك: '{s}'. النموذج بحاجة لتدريب أكثر للإجابة بدقة. شغّل: train-agent لبدء التعلم من الإنترنت.",
+            "لم أفهم رسالتك تماماً: '{s}'\n\nجرّب:\n• 'مساعدة' - عرض الأوامر\n• 'sqrt(25)+10' - حساب\n• 'كم الساعة' - وقت\n• 'ما هو الذكاء الاصطناعي' - معلومات\n• 'ترجم للإنجليزية: مرحبا' - ترجمة",
             .{input},
         );
     }
@@ -330,20 +339,18 @@ pub const SuperAgent = struct {
     pub fn learn(self: *SuperAgent, text: []const u8) !void {
         if (self.tokenizer == null) return;
 
-        // إضافة كلمات جديدة للـ tokenizer
         var it = std.mem.tokenizeAny(u8, text, " \t\n\r.,;:!?'\"()[]{}");
         while (it.next()) |word| {
             if (word.len >= 2 and word.len <= 20) {
-                _ = try self.tokenizer.?.addToken(word);
+                _ = self.tokenizer.?.addToken(word) catch {};
             }
         }
 
-        // حفظ الـ tokenizer
+        std.fs.cwd().makePath(self.config.model_dir) catch {};
+
         var path_buf: [256]u8 = undefined;
         const path = try std.fmt.bufPrint(&path_buf, "{s}/tokenizer.txt", .{self.config.model_dir});
-        try self.tokenizer.?.save(path);
-
-        std.debug.print("[agent] learned {d} chars of new text\n", .{text.len});
+        self.tokenizer.?.save(path) catch {};
     }
 
     /// إحصائيات الوكيل

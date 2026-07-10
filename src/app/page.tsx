@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Send, Sparkles, Plus, Trash2, Download, Settings, Cpu, Brain, MessageSquare, Calculator, Clock, Languages, Zap, Loader2, Server } from 'lucide-react'
+import { Send, Sparkles, Plus, Trash2, Settings, Cpu, Brain, MessageSquare, Calculator, Clock, Languages, Zap, Loader2, Server, BookOpen } from 'lucide-react'
 import { agentApi, type SessionInfo, type Stats } from '@/lib/agent-api'
 
 interface Message { role: 'user' | 'assistant'; content: string; tools?: string[]; timestamp: number }
 
 export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([{ role: 'assistant', content: 'مرحبا! أنا Super Agent - وكيل ذكاء اصطناعي خارق مبني بلغة Zig. كيف يمكنني مساعدتك؟', timestamp: Date.now() }])
+  const [messages, setMessages] = useState<Message[]>([{ role: 'assistant', content: 'مرحبا! أنا Super Agent - وكيل ذكاء اصطناعي خارق مبني بلغة Zig.\n\nاكتب "مساعدة" لعرض الأوامر المتاحة.', timestamp: Date.now() }])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [sessions, setSessions] = useState<SessionInfo[]>([])
@@ -53,17 +53,19 @@ export default function Home() {
   }
 
   const quickActions = [
-    { label: 'ترحيب', icon: MessageSquare, msg: 'مرحبا' },
-    { label: 'معلومات', icon: Cpu, msg: 'من انت؟' },
+    { label: 'مساعدة', icon: MessageSquare, msg: 'مساعدة' },
     { label: 'حساب', icon: Calculator, msg: 'sqrt(25) + 10' },
     { label: 'وقت', icon: Clock, msg: 'كم الساعة' },
     { label: 'EN', icon: Languages, msg: 'ترجم للإنجليزية: مرحبا عالم' },
     { label: 'FR', icon: Languages, msg: 'ترجم للفرنسية: مرحبا عالم' },
+    { label: 'ذكاء اصطناعي', icon: Brain, msg: 'ما هو الذكاء الاصطناعي' },
+    { label: 'Zig', icon: Cpu, msg: 'ما هي لغة Zig' },
+    { label: 'خوارزمية', icon: BookOpen, msg: 'ما هي الخوارزمية' },
   ]
 
   return (
     <div className="h-screen flex bg-zinc-950 text-zinc-100 overflow-hidden" dir="rtl">
-      <aside className="w-80 border-l border-zinc-800 bg-zinc-900 flex flex-col">
+      <aside className="w-72 border-l border-zinc-800 bg-zinc-900 flex flex-col">
         <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-emerald-400">المحادثات</h2>
           <button onClick={newSession} className="px-3 py-1.5 text-sm bg-emerald-600 hover:bg-emerald-700 rounded-lg flex items-center gap-1 transition"><Plus className="w-4 h-4" /> جديد</button>
@@ -82,7 +84,7 @@ export default function Home() {
         <header className="border-b border-zinc-800 p-4 flex items-center justify-between bg-zinc-900">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center"><Sparkles className="w-5 h-5 text-white" /></div>
-            <div><h1 className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Super Agent</h1><p className="text-xs text-zinc-500">وكيل ذكاء اصطناعي - Zig Edition</p></div>
+            <div><h1 className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Super Agent</h1><p className="text-xs text-zinc-500">وكيل ذكاء اصطناعي خارق - Zig Edition</p></div>
           </div>
           <div className="flex items-center gap-2">
             {stats && (
@@ -100,8 +102,8 @@ export default function Home() {
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-start' : 'justify-end'}`}>
               <div className={`max-w-[80%] rounded-2xl p-4 ${msg.role === 'user' ? 'bg-emerald-600 text-white' : 'bg-zinc-900 border border-zinc-800'}`}>
-                <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                {msg.tools && msg.tools.length > 0 && <div className="mt-2 pt-2 border-t border-zinc-700/50 flex flex-wrap gap-1">{msg.tools.map((t, j) => <span key={j} className="text-xs px-2 py-0.5 rounded bg-zinc-800">{t}</span>)}</div>}
+                <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{msg.content}</p>
+                {msg.tools && msg.tools.length > 0 && <div className="mt-2 pt-2 border-t border-zinc-700/50 flex flex-wrap gap-1">{msg.tools.map((t, j) => <span key={j} className="text-xs px-2 py-0.5 rounded bg-zinc-800 text-emerald-400">{t}</span>)}</div>}
               </div>
             </div>
           ))}
@@ -110,30 +112,41 @@ export default function Home() {
 
         <div className="px-4 py-2 border-t border-zinc-800 bg-zinc-900">
           <div className="flex flex-wrap gap-1.5 mb-2">
-            {quickActions.map((a, i) => <button key={i} onClick={() => sendMessage(a.msg)} className="px-3 py-1.5 text-xs border border-zinc-800 rounded-lg hover:bg-zinc-800 transition flex items-center gap-1"><a.icon className="w-3 h-3" />{a.label}</button>)}
+            {quickActions.map((a, i) => <button key={i} onClick={() => sendMessage(a.msg)} className="px-3 py-1.5 text-xs border border-zinc-800 rounded-lg hover:bg-zinc-800 hover:border-emerald-600 transition flex items-center gap-1"><a.icon className="w-3 h-3" />{a.label}</button>)}
           </div>
         </div>
 
         <div className="p-4 border-t border-zinc-800 bg-zinc-900">
           <div className="flex gap-2">
-            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !loading && sendMessage()} placeholder="اكتب رسالتك..." disabled={loading} className="flex-1 px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 focus:outline-none focus:border-emerald-500" />
-            <button onClick={() => sendMessage()} disabled={loading || !input.trim()} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-800 rounded-lg transition">{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}</button>
+            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !loading && sendMessage()} placeholder="اكتب رسالتك..." disabled={loading} className="flex-1 px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 focus:outline-none focus:border-emerald-500 transition" />
+            <button onClick={() => sendMessage()} disabled={loading || !input.trim()} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-800 rounded-lg transition flex items-center gap-2">{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}</button>
           </div>
         </div>
       </main>
 
       {showPanel && (
-        <aside className="w-80 border-r border-zinc-800 bg-zinc-900 overflow-y-auto p-4 space-y-4">
+        <aside className="w-72 border-r border-zinc-800 bg-zinc-900 overflow-y-auto p-4 space-y-4">
           <h3 className="font-semibold flex items-center gap-2"><Cpu className="w-4 h-4" /> معلومات النظام</h3>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span>حجم القاموس:</span><span className="font-mono">{stats?.vocab_size ?? '-'}</span></div>
-            <div className="flex justify-between"><span>مدخلات الذاكرة:</span><span className="font-mono">{stats?.memory_entries ?? '-'}</span></div>
-            <div className="flex justify-between"><span>النموذج محمّل:</span><span>{stats?.has_model ? '✅' : '❌'}</span></div>
-            <div className="flex justify-between"><span>حالة الخادم:</span><span>{backendOnline ? '✅ متصل' : '❌ غير متصل'}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-400">حجم القاموس:</span><span className="font-mono text-emerald-400">{stats?.vocab_size ?? '-'}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-400">مدخلات الذاكرة:</span><span className="font-mono text-emerald-400">{stats?.memory_entries ?? '-'}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-400">النموذج محمّل:</span><span>{stats?.has_model ? '✅' : '❌'}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-400">حالة الخادم:</span><span>{backendOnline ? '✅ متصل' : '❌ غير متصل'}</span></div>
+          </div>
+          <div className="pt-4 border-t border-zinc-800">
+            <h4 className="text-sm font-medium mb-2 text-zinc-400">الأوامر</h4>
+            <div className="text-xs space-y-1 text-zinc-500">
+              <div className="cursor-pointer hover:text-emerald-400" onClick={() => sendMessage('مساعدة')}>• مساعدة</div>
+              <div className="cursor-pointer hover:text-emerald-400" onClick={() => sendMessage('sqrt(64) + 5')}>• sqrt(64) + 5</div>
+              <div className="cursor-pointer hover:text-emerald-400" onClick={() => sendMessage('كم الساعة')}>• كم الساعة</div>
+              <div className="cursor-pointer hover:text-emerald-400" onClick={() => sendMessage('ما هو الذكاء الاصطناعي')}>• ما هو الذكاء الاصطناعي</div>
+              <div className="cursor-pointer hover:text-emerald-400" onClick={() => sendMessage('من انت')}>• من انت</div>
+            </div>
           </div>
           <div className="text-xs space-y-1 text-zinc-500 pt-4 border-t border-zinc-800">
             <div>Backend: Zig 0.14 (port 8080)</div>
             <div>Frontend: Next.js + React</div>
+            <div>Model: Mini-GPT Transformer</div>
             <div>RAM: 2GB, No GPU</div>
           </div>
         </aside>

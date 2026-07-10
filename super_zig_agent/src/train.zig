@@ -105,8 +105,16 @@ pub fn main() !void {
 
     // التدريب المستمر
     if (continuous) {
-        std.debug.print("[train] starting continuous learning...\n", .{});
-        try trainer.continuousLearning(urls.items, 30);
+        std.debug.print("[train] continuous mode: repeating training 5 times...\n", .{});
+        for (0..5) |epoch| {
+            std.debug.print("[train] === Epoch {d}/5 ===\n", .{epoch + 1});
+            try trainOnBuiltinCorpus(&trainer);
+            if (urls.items.len > 0) {
+                trainer.trainFromWeb(urls.items, max_pages) catch |err| {
+                    std.debug.print("[train] web error: {}\n", .{err});
+                };
+            }
+        }
     }
 
     // حفظ النموذج
