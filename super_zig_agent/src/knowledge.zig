@@ -1,5 +1,6 @@
-// src/knowledge.zig - قاعدة معرفة موسعة (50+ موضوع)
+// src/knowledge.zig - قاعدة معرفة موسعة (50+ موضوع) + مطابقة ضبابية
 const std = @import("std");
+const fuzzy = @import("fuzzy.zig");
 
 pub const KnowledgeEntry = struct {
     keywords: []const []const u8,
@@ -528,8 +529,9 @@ pub const KNOWLEDGE_BASE = [_]KnowledgeEntry{
     },
 };
 
-/// البحث في قاعدة المعرفة
+/// البحث في قاعدة المعرفة - مطابقة تامة + ضبابية
 pub fn search(query: []const u8) ?[]const u8 {
+    // 1. مطابقة تامة أولاً
     var best_match: ?[]const u8 = null;
     var best_score: usize = 0;
 
@@ -544,5 +546,21 @@ pub fn search(query: []const u8) ?[]const u8 {
         }
     }
 
-    return best_match;
+    if (best_match != null) return best_match;
+
+    // 2. مطابقة ضبابية للأخطاء الإملائية والصيغ المختلفة
+    var fuzzy_best: ?[]const u8 = null;
+    var fuzzy_score: usize = 0;
+
+    for (KNOWLEDGE_BASE) |entry| {
+        for (entry.keywords) |keyword| {
+            const score = fuzzy.similarity(query, keyword);
+            if (score > fuzzy_score and score >= 60) {
+                fuzzy_score = score;
+                fuzzy_best = entry.response;
+            }
+        }
+    }
+
+    return fuzzy_best;
 }

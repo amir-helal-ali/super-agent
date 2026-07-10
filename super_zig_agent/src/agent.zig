@@ -11,6 +11,7 @@ const web = @import("web/mod.zig");
 const knowledge = @import("knowledge.zig");
 const context_mod = @import("context.zig");
 const ngram = @import("ngram.zig");
+const responses = @import("responses.zig");
 
 pub const AgentConfig = struct {
     name: []const u8 = "Super Agent",
@@ -336,40 +337,51 @@ pub const SuperAgent = struct {
 
     /// رد احتياطي عندما لا يوجد نموذج مُدرّب
     fn fallbackResponse(self: *SuperAgent, input: []const u8) ![]u8 {
-        // 1. البحث في قاعدة المعرفة أولاً
+        // 1. البحث في قاعدة المعرفة (تامة + ضبابية)
         if (knowledge.search(input)) |response| {
             return self.allocator.dupe(u8, response);
         }
 
-        // 2. ردود للأسئلة الشائعة
+        // 2. ردود متنوعة للترحيب
         if (std.mem.indexOf(u8, input, "مرحبا") != null or
             std.mem.indexOf(u8, input, "السلام") != null or
             std.mem.indexOf(u8, input, "اهلا") != null or
-            std.mem.indexOf(u8, input, "hello") != null)
+            std.mem.indexOf(u8, input, "hello") != null or
+            std.mem.indexOf(u8, input, "hi") != null)
         {
-            return self.allocator.dupe(u8, "مرحبا بك! أنا Super Agent - وكيل ذكاء اصطناعي خارق خفيف الوزن. كيف يمكنني مساعدتك؟\n\nاكتب 'مساعدة' لعرض الأوامر المتاحة.");
-        }
-
-        if (std.mem.indexOf(u8, input, "شكرا") != null or std.mem.indexOf(u8, input, "thank") != null) {
-            return self.allocator.dupe(u8, "العفو! سعيد بمساعدتك. هل لديك سؤال آخر؟");
-        }
-
-        if (std.mem.indexOf(u8, input, "وداعا") != null or std.mem.indexOf(u8, input, "مع السلامة") != null or std.mem.indexOf(u8, input, "bye") != null) {
+            const greeting = responses.greeting();
             if (self.context.getUserName()) |name| {
-                return std.fmt.allocPrint(self.allocator, "إلى اللقاء {s}! كان من دواعي سروري مساعدتك. 👋", .{name});
+                return std.fmt.allocPrint(self.allocator, "{s} {s}! 🌟\n\nاكتب 'مساعدة' لعرض الأوامر.", .{ greeting, name });
             }
-            return self.allocator.dupe(u8, "إلى اللقاء! كان من دواعي سروري مساعدتك. 👋");
+            return std.fmt.allocPrint(self.allocator, "{s}\n\nاكتب 'مساعدة' لعرض الأوامر.", .{greeting});
         }
 
-        // 3. محاولة الرد بناءً على كلمات مفتاحية
-        if (std.mem.indexOf(u8, input, "كيف حالك") != null) {
+        // 3. ردود متنوعة للشكر
+        if (std.mem.indexOf(u8, input, "شكرا") != null or std.mem.indexOf(u8, input, "thank") != null or
+            std.mem.indexOf(u8, input, "ممتاز") != null or std.mem.indexOf(u8, input, "رائع") != null)
+        {
+            return self.allocator.dupe(u8, responses.thanks());
+        }
+
+        // 4. ردود متنوعة للوداع
+        if (std.mem.indexOf(u8, input, "وداعا") != null or std.mem.indexOf(u8, input, "مع السلامة") != null or
+            std.mem.indexOf(u8, input, "bye") != null or std.mem.indexOf(u8, input, "إلى اللقاء") != null)
+        {
+            if (self.context.getUserName()) |name| {
+                return std.fmt.allocPrint(self.allocator, "إلى اللقاء {s}! 👋", .{name});
+            }
+            return self.allocator.dupe(u8, responses.farewell());
+        }
+
+        // 5. كيف حالك
+        if (std.mem.indexOf(u8, input, "كيف حالك") != null or std.mem.indexOf(u8, input, "كيف الحال") != null) {
             if (self.context.getUserName()) |name| {
                 return std.fmt.allocPrint(self.allocator, "أنا بخير {s}، شكراً لسؤالك! 🌟 أنا جاهز لمساعدتك.", .{name});
             }
             return self.allocator.dupe(u8, "أنا بخير، شكراً لسؤالك! 🌟 أنا جاهز لمساعدتك في أي شيء.");
         }
 
-        // 3.5. هل يعرف المستخدم اسمي؟
+        // 6. استرجاع الاسم
         if (std.mem.indexOf(u8, input, "ما اسمي") != null or std.mem.indexOf(u8, input, "هل تعرف اسمي") != null) {
             if (self.context.getUserName()) |name| {
                 return std.fmt.allocPrint(self.allocator, "نعم! اسمك {s}. 😊", .{name});
@@ -377,12 +389,8 @@ pub const SuperAgent = struct {
             return self.allocator.dupe(u8, "لا أعرف اسمك بعد. أخبرني: 'اسمي أحمد'");
         }
 
-        // 4. رد عام مفيد
-        return std.fmt.allocPrint(
-            self.allocator,
-            "لم أفهم رسالتك تماماً: '{s}'\n\nجرّب:\n• 'مساعدة' - عرض الأوامر\n• 'sqrt(25)+10' - حساب\n• 'كم الساعة' - وقت\n• 'ما هو الذكاء الاصطناعي' - معلومات\n• 'طقس في القاهرة' - الطقس\n• 'سعر الدولار' - العملات\n• 'ترجم للإنجليزية: مرحبا' - ترجمة\n• 'اسمي أحمد' - تعريف بالنفس",
-            .{input},
-        );
+        // 7. رد ذكي مع اقتراحات
+        return responses.suggestResponse(input, self.allocator);
     }
 
     /// تدريب على نص جديد
