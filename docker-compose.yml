@@ -1,0 +1,75 @@
+# docker-compose.yml - Super Agent Stack
+# تشغيل خادم Zig + واجهة Next.js + Caddy Gateway
+
+version: '3.8'
+
+services:
+  # === خادم Zig Backend ===
+  zig-backend:
+    build:
+      context: ./super_zig_agent
+      dockerfile: Dockerfile
+    container_name: super-agent-zig
+    ports:
+      - "8080:8080"
+    volumes:
+      - zig-data:/app/data
+    environment:
+      - ZIG_SERVER_PORT=8080
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/api/stats"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - super-agent-net
+
+  # === واجهة Next.js Frontend ===
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: super-agent-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - ZIG_BACKEND_URL=http://zig-backend:8080
+    depends_on:
+      zig-backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - super-agent-net
+
+  # === Caddy Gateway (اختياري - للإنتاج) ===
+  caddy:
+    image: caddy:2-alpine
+    container_name: super-agent-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - frontend
+      - zig-backend
+    restart: unless-stopped
+    networks:
+      - super-agent-net
+    profiles:
+      - production
+
+volumes:
+  zig-data:
+    driver: local
+  caddy-data:
+  caddy-config:
+
+networks:
+  super-agent-net:
+    driver: bridge

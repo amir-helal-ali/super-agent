@@ -1,0 +1,9 @@
+# .dockerignore لخادم Zig
+.zig-cache
+zig-out
+data
+*.md
+.git
+.gitignore
+Dockerfile
+.dockerignore

@@ -164,10 +164,14 @@ fn learnMode(_: std.mem.Allocator, agent: *SuperAgent) !void {
     try stdout.print("تم التعلم من {d} حرف.\n", .{total});
 }
 
-/// وضع الخادم (placeholder - سيُنفذ لاحقاً)
-fn serverMode(_: std.mem.Allocator, _: *SuperAgent) !void {
+/// وضع الخادم - تشغيل HTTP + WebSocket server مستقر
+fn serverMode(_: std.mem.Allocator, agent: *SuperAgent) !void {
     const stdout = std.io.getStdOut().writer();
-    try stdout.print("Server mode not yet implemented. Use --chat for interactive mode.\n", .{});
+    const StableServer = @import("stable_server.zig").StableServer;
+    var server = try StableServer.init(agent.allocator, agent, 8080);
+    defer server.deinit();
+    try stdout.print("[server] starting stable HTTP server on port 8080...\n", .{});
+    try server.run();
 }
 
 fn printHelp() !void {
