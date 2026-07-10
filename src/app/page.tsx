@@ -60,7 +60,9 @@ export default function Home() {
     { label: 'FR', icon: Languages, msg: 'ترجم للفرنسية: مرحبا عالم' },
     { label: 'ذكاء اصطناعي', icon: Brain, msg: 'ما هو الذكاء الاصطناعي' },
     { label: 'Zig', icon: Cpu, msg: 'ما هي لغة Zig' },
-    { label: 'خوارزمية', icon: BookOpen, msg: 'ما هي الخوارزمية' },
+    { label: 'طقس', icon: Zap, msg: 'طقس في القاهرة' },
+    { label: 'دولار', icon: Zap, msg: 'سعر الدولار' },
+    { label: 'نكتة', icon: MessageSquare, msg: 'اخبرني نكتة' },
   ]
 
   return (

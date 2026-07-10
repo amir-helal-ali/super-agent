@@ -9,6 +9,7 @@ const Memory = @import("memory.zig").Memory;
 const tools = @import("tools/mod.zig");
 const web = @import("web/mod.zig");
 const knowledge = @import("knowledge.zig");
+const context_mod = @import("context.zig");
 
 pub const AgentConfig = struct {
     name: []const u8 = "Super Agent",
@@ -39,6 +40,7 @@ pub const SuperAgent = struct {
     tokenizer: ?Tokenizer,
     memory: Memory,
     rng: std.Random.DefaultPrng,
+    context: context_mod.ConversationContext,
 
     pub fn init(allocator: std.mem.Allocator, config: AgentConfig) !SuperAgent {
         var agent = SuperAgent{
@@ -48,6 +50,7 @@ pub const SuperAgent = struct {
             .tokenizer = null,
             .memory = try Memory.init(allocator, config.memory_dir),
             .rng = nn.tensor.createRng(@bitCast(std.time.timestamp())),
+            .context = context_mod.ConversationContext.init(allocator),
         };
 
         // محاولة تحميل النموذج المُدرّب
@@ -60,6 +63,7 @@ pub const SuperAgent = struct {
         if (self.model) |*m| m.deinit();
         if (self.tokenizer) |*t| t.deinit();
         self.memory.deinit();
+        self.context.deinit();
     }
 
     /// تحميل النموذج والـ tokenizer
@@ -121,18 +125,38 @@ pub const SuperAgent = struct {
         var tools_used = std.ArrayList([]const u8).init(self.allocator);
         var steps_taken: usize = 0;
 
+        // حفظ في السياق
+        self.context.addMessage("user", user_input) catch {};
+
+        // 0.5. هل يسأل عن الطقس؟
+        if (tools.info_tool.isWeatherQuery(user_input)) |city| {
+            const weather = tools.info_tool.getWeather(self.allocator, city) catch null;
+            if (weather) |r| {
+                try tools_used.append("weather");
+                steps_taken += 1;
+                self.context.addMessage("assistant", r) catch {};
+                return .{ .answer = r, .steps_taken = steps_taken, .tools_used = tools_used, .learned = false, .allocator = self.allocator };
+            }
+        }
+
+        // 0.6. هل يسأل عن العملات؟
+        if (tools.info_tool.isCurrencyQuery(user_input)) |cur| {
+            const rate = tools.info_tool.getExchangeRate(self.allocator, cur.from, cur.to) catch null;
+            if (rate) |r| {
+                try tools_used.append("currency");
+                steps_taken += 1;
+                self.context.addMessage("assistant", r) catch {};
+                return .{ .answer = r, .steps_taken = steps_taken, .tools_used = tools_used, .learned = false, .allocator = self.allocator };
+            }
+        }
+
         // 1. تحليل المدخل - هل يحتوي طلب أداة؟
         const calc_result = self.tryCalculator(user_input) catch null;
         if (calc_result) |r| {
             try tools_used.append("calculator");
             steps_taken += 1;
-            return .{
-                .answer = r,
-                .steps_taken = steps_taken,
-                .tools_used = tools_used,
-                .learned = false,
-                .allocator = self.allocator,
-            };
+            self.context.addMessage("assistant", r) catch {};
+            return .{ .answer = r, .steps_taken = steps_taken, .tools_used = tools_used, .learned = false, .allocator = self.allocator };
         }
 
         // 2. هل يسأل عن شيء نعرفه من الذاكرة؟
@@ -295,18 +319,32 @@ pub const SuperAgent = struct {
         }
 
         if (std.mem.indexOf(u8, input, "وداعا") != null or std.mem.indexOf(u8, input, "مع السلامة") != null or std.mem.indexOf(u8, input, "bye") != null) {
-            return self.allocator.dupe(u8, "إلى اللقاء! كان من دواعي سروري مساعدتك.");
+            if (self.context.getUserName()) |name| {
+                return std.fmt.allocPrint(self.allocator, "إلى اللقاء {s}! كان من دواعي سروري مساعدتك. 👋", .{name});
+            }
+            return self.allocator.dupe(u8, "إلى اللقاء! كان من دواعي سروري مساعدتك. 👋");
         }
 
         // 3. محاولة الرد بناءً على كلمات مفتاحية
         if (std.mem.indexOf(u8, input, "كيف حالك") != null) {
-            return self.allocator.dupe(u8, "أنا بخير، شكراً لسؤالك! أنا جاهز لمساعدتك في أي شيء.");
+            if (self.context.getUserName()) |name| {
+                return std.fmt.allocPrint(self.allocator, "أنا بخير {s}، شكراً لسؤالك! 🌟 أنا جاهز لمساعدتك.", .{name});
+            }
+            return self.allocator.dupe(u8, "أنا بخير، شكراً لسؤالك! 🌟 أنا جاهز لمساعدتك في أي شيء.");
+        }
+
+        // 3.5. هل يعرف المستخدم اسمي؟
+        if (std.mem.indexOf(u8, input, "ما اسمي") != null or std.mem.indexOf(u8, input, "هل تعرف اسمي") != null) {
+            if (self.context.getUserName()) |name| {
+                return std.fmt.allocPrint(self.allocator, "نعم! اسمك {s}. 😊", .{name});
+            }
+            return self.allocator.dupe(u8, "لا أعرف اسمك بعد. أخبرني: 'اسمي أحمد'");
         }
 
         // 4. رد عام مفيد
         return std.fmt.allocPrint(
             self.allocator,
-            "لم أفهم رسالتك تماماً: '{s}'\n\nجرّب:\n• 'مساعدة' - عرض الأوامر\n• 'sqrt(25)+10' - حساب\n• 'كم الساعة' - وقت\n• 'ما هو الذكاء الاصطناعي' - معلومات\n• 'ترجم للإنجليزية: مرحبا' - ترجمة",
+            "لم أفهم رسالتك تماماً: '{s}'\n\nجرّب:\n• 'مساعدة' - عرض الأوامر\n• 'sqrt(25)+10' - حساب\n• 'كم الساعة' - وقت\n• 'ما هو الذكاء الاصطناعي' - معلومات\n• 'طقس في القاهرة' - الطقس\n• 'سعر الدولار' - العملات\n• 'ترجم للإنجليزية: مرحبا' - ترجمة\n• 'اسمي أحمد' - تعريف بالنفس",
             .{input},
         );
     }
