@@ -12,6 +12,7 @@ const knowledge = @import("knowledge.zig");
 const context_mod = @import("context.zig");
 const ngram = @import("ngram.zig");
 const responses = @import("responses.zig");
+const sentiment_mod = @import("sentiment.zig");
 
 pub const AgentConfig = struct {
     name: []const u8 = "Super Agent",
@@ -135,6 +136,33 @@ pub const SuperAgent = struct {
 
         // حفظ في السياق
         self.context.addMessage("user", user_input) catch {};
+
+        // 0. تحليل المشاعر - إضافة رد عاطفي إذا لزم
+        const detected_sentiment = sentiment_mod.analyze(user_input);
+        if (detected_sentiment != .neutral) {
+            const sentiment_reply = sentiment_mod.responseForSentiment(detected_sentiment);
+            if (sentiment_reply.len > 0) {
+                // نضيف الرد العاطفي قبل الرد الفعلي
+                // لكن فقط إذا لم يكن سؤالاً مباشراً
+                const is_question = std.mem.indexOf(u8, user_input, "؟") != null or
+                    std.mem.indexOf(u8, user_input, "?") != null or
+                    std.mem.indexOf(u8, user_input, "ما ") != null or
+                    std.mem.indexOf(u8, user_input, "كم ") != null or
+                    std.mem.indexOf(u8, user_input, "كيف ") != null;
+                if (!is_question) {
+                    try tools_used.append("sentiment");
+                    steps_taken += 1;
+                    self.context.addMessage("assistant", sentiment_reply) catch {};
+                    return .{
+                        .answer = try self.allocator.dupe(u8, sentiment_reply),
+                        .steps_taken = steps_taken,
+                        .tools_used = tools_used,
+                        .learned = false,
+                        .allocator = self.allocator,
+                    };
+                }
+            }
+        }
 
         // 0.5. هل يسأل عن الطقس؟
         if (tools.info_tool.isWeatherQuery(user_input)) |city| {

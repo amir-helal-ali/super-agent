@@ -527,6 +527,362 @@ pub const KNOWLEDGE_BASE = [_]KnowledgeEntry{
         \\لأن الضوء يجذب الحشرات (bugs)! 🐛
         ,
     },
+    // === مواضيع جديدة v9.3 ===
+    .{
+        .keywords = &.{ "ما هو الكمبيوتر", "ما هو الحاسوب", "computer", "حاسوب", "كمبيوتر" },
+        .response =
+        \\الحاسوب (Computer) جهاز إلكتروني يعالج البيانات:
+        \\• المكونات: CPU, RAM, GPU, التخزين
+        \\• أنواع: مكتبي، محمول، خادم، مدمج
+        \\• البرامج: نظام تشغيل، تطبيقات، ألعاب
+        \\• سرعة المعالج تقاس بـ GHz
+        \\• الذاكرة تقاس بـ GB (جيجابايت)
+        ,
+    },
+    .{
+        .keywords = &.{ "linux", "لينكس", "gnu/linux", "أوبونتو", "ubuntu" },
+        .response =
+        \\Linux نظام تشغيل مفتوح المصدر:
+        \\• نواة (Kernel) طورها Linus Torvalds عام 1991
+        \\• توزيعات: Ubuntu, Debian, Fedora, Arch, Alpine
+        \\• مفتوح المصدر ومجاني
+        \\• آمن ومستقر وسريع
+        \\• يستخدم في الخوادم والسوبر كمبيوتر
+        \\• Android مبني على نواة Linux
+        ,
+    },
+    .{
+        .keywords = &.{ "windows", "ويندوز", "microsoft windows" },
+        .response =
+        \\Windows نظام تشغيل من Microsoft:
+        \\• الإصدارات: Windows 10, 11, Server
+        \\• واجهة رسومية سهلة الاستخدام
+        \\• يدعم الألعاب والبرامج المكتبية
+        \\• الأكثر استخداماً في المنازل والشركات
+        ,
+    },
+    .{
+        .keywords = &.{ "python", "بايثون", "لغة بايثون" },
+        .response =
+        \\Python لغة برمجة عالية المستوى:
+        \\• سهلة التعلم والقراءة
+        \\• تستخدم في: AI, Web, Data Science, Automation
+        \\• مكتبات: NumPy, Pandas, TensorFlow, Django
+        \\• مترجمة (لا حاجة لتجميع)
+        \\• مثالية للمبتدئين
+        ,
+    },
+    .{
+        .keywords = &.{ "javascript", "جافاسكريبت", "js" },
+        .response =
+        \\JavaScript لغة برمجة للويب:
+        \\• تعمل في المتصفح والخادم (Node.js)
+        \\• Frameworks: React, Vue, Angular, Next.js
+        \\• ضرورية لتطوير الويب الحديث
+        \\• ES6+ أضافت ميزات حديثة
+        \\• TypeScript يضيف أنواعاً (types)
+        ,
+    },
+    .{
+        .keywords = &.{ "rust", "راست", "لغة rust" },
+        .response =
+        \\Rust لغة برمجة systems حديثة:
+        \\• آمنة للذاكرة بدون garbage collector
+        \\• أسرع من C++ في بعض الحالات
+        \\• ownership system فريد
+        \\• تستخدم في: Firefox, Discord, Cloudflare
+        \\• منافس قوي لـ C++ و Zig
+        ,
+    },
+    .{
+        .keywords = &.{ "react", "رياكت", "react.js" },
+        .response =
+        \\React مكتبة JavaScript للواجهات:
+        \\• طورتها Facebook (Meta)
+        \\• Component-based architecture
+        \\• Virtual DOM للأداء العالي
+        \\• Next.js: framework كامل مبني على React
+        \\• تستخدم في: Facebook, Instagram, Netflix
+        ,
+    },
+    .{
+        .keywords = &.{ "next.js", "nextjs", "نيكست" },
+        .response =
+        \\Next.js إطار عمل مبني على React:
+        \\• Server-side rendering (SSR)
+        \\• Static generation (SSG)
+        \\• App Router (Next.js 13+)
+        \\• API routes مدمجة
+        \\• Turbopack للأداء العالي
+        \\واجهة Super Agent مبنية بـ Next.js!
+        ,
+    },
+    .{
+        .keywords = &.{ "typescript", "تايب سكريبت", "ts" },
+        .response =
+        \\TypeScript توسعة لـ JavaScript:
+        \\• يضيف نظام أنواع (type system)
+        \\• يكشف الأخطاء قبل التشغيل
+        \\• أفضل autocomplete و IntelliSense
+        \\• يحوله لـ JavaScript قبل التنفيذ
+        \\• يستخدم في معظم المشاريع الكبيرة
+        ,
+    },
+    .{
+        .keywords = &.{ "tailwind", "tailwind css", "تيلويند" },
+        .response =
+        \\Tailwind CSS إطار تصميم:
+        \\• Utility-first CSS framework
+        \\• لا حاجة لكتابة CSS منفصل
+        \\• سريع جداً ومخصص بالكامل
+        \\• يستخدم في Next.js, Vue, React
+        \\• إصدار v4: محرك جديد أسرع
+        ,
+    },
+    .{
+        .keywords = &.{ "shadcn", "shadcn/ui" },
+        .response =
+        \\shadcn/ui مكتبة مكونات React:
+        \\• مبنية على Radix UI + Tailwind
+        \\• تنسخ الكود لمشروعك (بدون dependency)
+        \\• قابلة للتخصيص بالكامل
+        \\• مكونات: Button, Card, Dialog, Input...
+        \\• تستخدم في واجهة Super Agent!
+        ,
+    },
+    .{
+        .keywords = &.{ "webhook", "ويب هوك" },
+        .response =
+        \\Webhook اتصال عكسي:
+        \\• HTTP POST callback عند حدث معين
+        \\• بديل للـ polling (أكثر كفاءة)
+        \\• يستخدم في: GitHub, Stripe, Slack
+        \\• مثال: إشعار عند push للكود
+        ,
+    },
+    .{
+        .keywords = &.{ "ci/cd", "cicd", "continuous integration" },
+        .response =
+        \\CI/CD التكامل والتسليم المستمر:
+        \\• CI: اختبار تلقائي عند كل push
+        \\• CD: نشر تلقائي للإنتاج
+        \\• أدوات: GitHub Actions, Jenkins, GitLab CI
+        \\• يضمن جودة الكود وتسليم سريع
+        ,
+    },
+    .{
+        .keywords = &.{ "microservices", "الخدمات المصغرة", "microservice" },
+        .response =
+        \\Microservices معمارية برمجية:
+        \\• تقسيم التطبيق لخدمات صغيرة مستقلة
+        \\• كل خدمة لها قاعدة بيانات خاصة
+        \\• تتواصل عبر API أو events
+        \\• قابلية توسع أفضل
+        \\• بديل للـ monolithic architecture
+        ,
+    },
+    .{
+        .keywords = &.{ "kubernetes", "k8s", "كوبرنيتس" },
+        .response =
+        \\Kubernetes منصة orchestration:
+        \\• إدارة الحاويات (Docker) على نطاق واسع
+        \\• auto-scaling تلقائي
+        \\• self-healing (إعادة تشغيل تلقائية)
+        \\• load balancing مدمج
+        \\• طورته Google
+        ,
+    },
+    .{
+        .keywords = &.{ "elasticsearch", "elastic", "بحث مرن" },
+        .response =
+        \\Elasticsearch محرك بحث وتحليل:
+        \\• بحث full-text سريع جداً
+        \\• تحليلات في الوقت الفعلي
+        \\• موزع (distributed) وقابل للتوسع
+        \\• يستخدم في: Wikipedia, GitHub, Uber
+        ,
+    },
+    .{
+        .keywords = &.{ "redis", "ريديس" },
+        .response =
+        \\Redis قاعدة بيانات in-memory:
+        \\• سريعة جداً (microseconds)
+        \\• key-value store
+        \\• تستخدم كـ cache و message broker
+        \\• يدعم: strings, lists, sets, hash, streams
+        ,
+    },
+    .{
+        .keywords = &.{ "mongodb", "مونجو دي بي", "mongo" },
+        .response =
+        \\MongoDB قاعدة بيانات NoSQL:
+        \\• document-based (JSON-like)
+        \\• مرنة وقابلة للتوسع
+        \\• لا تحتاج schema ثابت
+        \\• تستخدم في: Uber, eBay, Adobe
+        ,
+    },
+    .{
+        .keywords = &.{ "graphql", "جراف كيو ال" },
+        .response =
+        \\GraphQL لغة استعلام للـ APIs:
+        \\• اطلب فقط البيانات التي تحتاجها
+        \\• نقطة نهاية واحدة (/graphql)
+        \\• strongly typed
+        \\• بديل لـ REST API
+        \\• طورته Facebook (Meta)
+        ,
+    },
+    .{
+        .keywords = &.{ "webassembly", "wasm", "ويب اسمبلي" },
+        .response =
+        \\WebAssembly (Wasm):
+        \\• تشغيل كود سريع في المتصفح
+        \\• لغات: C, C++, Rust, Zig, Go
+        \\• أسرع من JavaScript بـ 10-100x
+        \\• آمن (sandbox)
+        \\• مستقبل الويب عالي الأداء
+        ,
+    },
+    .{
+        .keywords = &.{ "openssl", "tls", "ssl", "https", "تشفير" },
+        .response =
+        \\TLS/SSL تشفير الاتصالات:
+        \\• HTTPS = HTTP + TLS
+        \\• يحمي البيانات من التنصت
+        \\• شهادات من Let's Encrypt (مجانية)
+        \\• TLS 1.3 الأحدث والأسرع
+        \\• يستخدم asymmetric + symmetric encryption
+        ,
+    },
+    .{
+        .keywords = &.{ "jwt", "json web token", "المصادقة" },
+        .response =
+        \\JWT (JSON Web Token):
+        \\• token للمصادقة بدون session
+        \\• يتكون من: header, payload, signature
+        \\• stateless (لا حاجة لقاعدة بيانات)
+        \\• يستخدم في APIs و SPAs
+        \\• آمن إذا استخدم بشكل صحيح
+        ,
+    },
+    .{
+        .keywords = &.{ "oauth", "oauth2", "أوث" },
+        .response =
+        \\OAuth 2.0 بروتوكول مصادقة:
+        \\• "تسجيل الدخول بـ Google/Facebook"
+        \\• يسمح بالوصول بدون كشف كلمة المرور
+        \\• access token + refresh token
+        \\• يستخدم في معظم التطبيقات الحديثة
+        ,
+    },
+    .{
+        .keywords = &.{ "devops", "ديف أوبس" },
+        .response =
+        \\DevOps دمج التطوير والعمليات:
+        \\• CI/CD pipelines
+        \\• Infrastructure as Code (Terraform)
+        \\• Monitoring (Prometheus, Grafana)
+        \\• Container orchestration (K8s)
+        \\• ثقافة التعاون بين الفرق
+        ,
+    },
+    .{
+        .keywords = &.{ "agile", "أجايل", "scrum" },
+        .response =
+        \\Agile منهجية تطوير مرنة:
+        \\• Sprints قصيرة (1-4 أسابيع)
+        \\• Daily standup meetings
+        \\• قابلية التكيف مع التغييرات
+        \\• Scrum: Product Owner, Scrum Master, Team
+        \\• Kanban: لوحة مهام مرئية
+        ,
+    },
+    .{
+        .keywords = &.{ "sql injection", "xss", "csrf", "ثغرات" },
+        .response =
+        \\ثغرات الويب الشائعة:
+        \\• SQL Injection: حقن كود SQL خبيث
+        \\• XSS: حقن سكريبت في الصفحة
+        \\• CSRF: تنفيذ طلبات بدون علم المستخدم
+        \\• الحماية: parameterized queries, CSP, tokens
+        ,
+    },
+    .{
+        .keywords = &.{ "linux commands", "أوامر لينكس", "terminal", "bash" },
+        .response =
+        \\أوامر Linux مهمة:
+        \\• ls - عرض الملفات
+        \\• cd - تغيير المجلد
+        \\• grep - بحث في النصوص
+        \\• find - البحث عن ملفات
+        \\• chmod - تغيير الصلاحيات
+        \\• ps - عرض العمليات
+        \\• top - مراقبة الموارد
+        \\• ssh - اتصال آمن عن بعد
+        ,
+    },
+    .{
+        .keywords = &.{ "git commands", "أوامر git", "github commands" },
+        .response =
+        \\أوامر Git الأساسية:
+        \\• git clone <url> - نسخ مستودع
+        \\• git add . - إضافة التغييرات
+        \\• git commit -m "msg" - حفظ
+        \\• git push - رفع التغييرات
+        \\• git pull - سحب التحديثات
+        \\• git branch - إنشاء فرع
+        \\• git merge - دمج الفروع
+        \\• git log - عرض التاريخ
+        ,
+    },
+    .{
+        .keywords = &.{ "regex", "regular expression", "التعبيرات النمطية" },
+        .response =
+        \\Regex (Regular Expressions):
+        \\• أنماط للبحث والمطابقة في النصوص
+        \\• ^ بداية، $ نهاية
+        \\• * صفر أو أكثر، + واحد أو أكثر
+        \\• ? صفر أو واحد
+        \\• [a-z] نطاق أحرف
+        \\• \\d أرقام، \\w كلمات
+        \\• مثال: ^[A-Z][a-z]+$ اسم يبدأ بكبيرة
+        ,
+    },
+    .{
+        .keywords = &.{ "async", "asynchronous", "غير متزامن" },
+        .response =
+        \\البرمجة غير المتزامنة (Async):
+        \\• تنفيذ مهام بدون انتظار (non-blocking)
+        \\• مفيدة للـ I/O: شبكة، ملفات، قاعدة بيانات
+        \\• JavaScript: async/await, Promises
+        \\• Python: asyncio
+        \\• Zig: async frames
+        \\• تحسن الأداء بشكل كبير
+        ,
+    },
+    .{
+        .keywords = &.{ "tcp/ip", "network", "الشبكات", "بروتوكول" },
+        .response =
+        \\TCP/IP بروتوكولات الشبكات:
+        \\• TCP: موثوق، مرتب (HTTP, HTTPS)
+        \\• UDP: سريع، غير موثوق (video, gaming)
+        \\• IP: عنونة الأجهزة (IPv4, IPv6)
+        \\• DNS: تحويل الأسماء لعناوين
+        \\• Ports: 80=HTTP, 443=HTTPS, 22=SSH
+        ,
+    },
+    .{
+        .keywords = &.{ "ffmpeg", "فيديو", "video processing" },
+        .response =
+        \\FFmpeg أداة معالجة الوسائط:
+        \\• تحويل صيغ الفيديو والصوت
+        \\• قص ودمج المقاطع
+        \\• استخراج الصور من الفيديو
+        \\• ضغط الفيديو
+        \\• مجاني ومفتوح المصدر
+        ,
+    },
 };
 
 /// البحث في قاعدة المعرفة - مطابقة تامة + ضبابية
