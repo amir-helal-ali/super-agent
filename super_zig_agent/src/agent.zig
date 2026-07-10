@@ -272,43 +272,66 @@ pub const SuperAgent = struct {
 
     /// توليد رد باستخدام النموذج المحلي
     fn generateResponse(self: *SuperAgent, input: []const u8) ![]u8 {
-        // 1. محاولة استخدام n-gram model (سريع ومتماسك)
+        // 1. محاولة استخدام n-gram model
         if (self.ngram_model.trained) {
-            const ngram_result = self.ngram_model.generate(self.allocator, input, 20) catch null;
+            const ngram_result = self.ngram_model.generate(self.allocator, input, 15) catch null;
             if (ngram_result) |r| {
-                if (r.len > input.len + 5) {
+                // فحص جودة الرد
+                if (self.isResponseCoherent(r, input)) {
                     return r;
                 }
                 self.allocator.free(r);
             }
         }
 
-        // 2. محاولة استخدام transformer model
-        if (self.tokenizer != null and self.model != null) {
-            var tokens = try self.tokenizer.?.encode(input);
-            defer tokens.deinit();
-
-            var prompt = std.ArrayList(u32).init(self.allocator);
-            defer prompt.deinit();
-            try prompt.append(Tokenizer.BOS);
-            try prompt.appendSlice(tokens.items);
-
-            var random = self.rng.random();
-            var output = self.model.?.generateAdvanced(prompt.items, 50, 0.8, 30, 1.2, &random) catch {
-                return self.fallbackResponse(input);
-            };
-            defer output.deinit();
-
-            var decoded = try self.tokenizer.?.decode(output.items);
-            defer decoded.deinit();
-
-            if (decoded.items.len > 3) {
-                return self.allocator.dupe(u8, decoded.items);
-            }
-        }
+        // 2. محاولة استخدام transformer model (معطل مؤقتاً - ينتج نصاً غير مفهوم)
+        // TODO: إعادة تفعيل بعد تدريب كافٍ
 
         // 3. fallback
         return self.fallbackResponse(input);
+    }
+
+    /// فحص جودة الرد - هل هو متماسك؟
+    fn isResponseCoherent(self: *SuperAgent, response: []const u8, input: []const u8) bool {
+        _ = self;
+        _ = input;
+
+        // يجب أن يكون طوله معقولاً
+        if (response.len < 10) return false;
+        if (response.len > 500) return false;
+
+        // يجب أن لا يحتوي على رموز غريبة كثيرة
+        var weird_count: usize = 0;
+        for (response) |c| {
+            if (c < 32 and c != ' ' and c != '\n' and c != '\t') weird_count += 1;
+        }
+        if (weird_count > 3) return false;
+
+        // عد الكلمات
+        var word_count: usize = 0;
+        var it = std.mem.tokenizeAny(u8, response, " \t\n\r");
+        while (it.next()) |_| word_count += 1;
+
+        // يجب أن يكون 3 كلمات على الأقل
+        if (word_count < 3) return false;
+
+        // فحص الخلط اللغوي - لا يجب أن يخلط عربي وإنجليزي بكثرة
+        var ar_chars: usize = 0;
+        var en_chars: usize = 0;
+        for (response) |b| {
+            if (b >= 0xD8 and b <= 0xD9) ar_chars += 1;
+            if (b >= 'a' and b <= 'z') en_chars += 1;
+            if (b >= 'A' and b <= 'Z') en_chars += 1;
+        }
+
+        // إذا كان فيه خلط كبير (أكثر من 30% لغة أخرى) ارفضه
+        if (ar_chars > 0 and en_chars > 0) {
+            const total = ar_chars + en_chars;
+            const minority = @min(ar_chars, en_chars);
+            if (minority * 100 / total > 30) return false;
+        }
+
+        return true;
     }
 
     /// رد احتياطي عندما لا يوجد نموذج مُدرّب
