@@ -13,6 +13,7 @@ const context_mod = @import("context.zig");
 const ngram = @import("ngram.zig");
 const responses = @import("responses.zig");
 const sentiment_mod = @import("sentiment.zig");
+const summarizer = @import("summarizer.zig");
 
 pub const AgentConfig = struct {
     name: []const u8 = "Super Agent",
@@ -136,6 +137,27 @@ pub const SuperAgent = struct {
 
         // حفظ في السياق
         self.context.addMessage("user", user_input) catch {};
+
+        // 0.1. طلب ملخص المحادثة
+        if (std.mem.indexOf(u8, user_input, "ملخص") != null or
+            std.mem.indexOf(u8, user_input, "لخص") != null or
+            std.mem.indexOf(u8, user_input, "summary") != null or
+            std.mem.indexOf(u8, user_input, "ماذا تحدثنا") != null)
+        {
+            const summary = summarizer.summarize(self.allocator, &self.context) catch null;
+            if (summary) |s| {
+                try tools_used.append("summarizer");
+                steps_taken += 1;
+                self.context.addMessage("assistant", s) catch {};
+                return .{
+                    .answer = s,
+                    .steps_taken = steps_taken,
+                    .tools_used = tools_used,
+                    .learned = false,
+                    .allocator = self.allocator,
+                };
+            }
+        }
 
         // 0. تحليل المشاعر - إضافة رد عاطفي إذا لزم
         const detected_sentiment = sentiment_mod.analyze(user_input);
