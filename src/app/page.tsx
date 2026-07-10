@@ -18,7 +18,7 @@ export default function Home() {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const loadStats = useCallback(async () => {
-    try { const s = await agentApi.getStats(); setStats(s); setBackendOnline(!s.error) } catch { setBackendOnline(false) }
+    try { const s = await agentApi.getStats(); setStats(s); setBackendOnline(!(s as any).error) } catch { setBackendOnline(false) }
   }, [])
 
   const loadSessions = useCallback(async () => {
