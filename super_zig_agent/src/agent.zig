@@ -20,6 +20,7 @@ const thinking_mod = @import("thinking.zig");
 const reasoning_mod = @import("reasoning.zig");
 const code_analyzer = @import("code_analyzer.zig");
 const problem_solver = @import("problem_solver.zig");
+const self_reflection_mod = @import("self_reflection.zig");
 
 pub const AgentConfig = struct {
     name: []const u8 = "Super Agent",
@@ -56,6 +57,7 @@ pub const SuperAgent = struct {
     long_term_memory: ltm_mod.LongTermMemory,
     thinking_engine: thinking_mod.ThinkingEngine,
     reasoning_engine: reasoning_mod.ReasoningEngine,
+    self_reflection: self_reflection_mod.SelfReflection,
 
     pub fn init(allocator: std.mem.Allocator, config: AgentConfig) !SuperAgent {
         var agent = SuperAgent{
@@ -75,6 +77,7 @@ pub const SuperAgent = struct {
             },
             .thinking_engine = thinking_mod.ThinkingEngine.init(allocator),
             .reasoning_engine = reasoning_mod.ReasoningEngine.init(allocator),
+            .self_reflection = self_reflection_mod.SelfReflection.init(allocator),
         };
 
         // تدريب n-gram على corpus مدمج
@@ -94,6 +97,7 @@ pub const SuperAgent = struct {
         self.ngram_model.deinit();
         self.brain.deinit();
         self.long_term_memory.deinit();
+        self.self_reflection.deinit();
     }
 
     /// تحميل النموذج والـ tokenizer
@@ -187,6 +191,7 @@ pub const SuperAgent = struct {
                 try tools_used.append("problem_solver");
                 steps_taken += 1;
                 self.context.addMessage("assistant", r) catch {};
+                self.self_reflection.logResponse(user_input, r, tools_used.items) catch {};
                 return .{
                     .answer = r,
                     .steps_taken = steps_taken,
@@ -194,6 +199,27 @@ pub const SuperAgent = struct {
                     .learned = false,
                     .allocator = self.allocator,
                 };
+            }
+        }
+
+        // 0.06. تقييم ذاتي أو ملاحظة
+        if (self_reflection_mod.SelfReflection.isSelfReportRequest(user_input)) {
+            const report = self.self_reflection.selfReport() catch null;
+            if (report) |r| {
+                try tools_used.append("self_reflection");
+                steps_taken += 1;
+                self.context.addMessage("assistant", r) catch {};
+                return .{ .answer = r, .steps_taken = steps_taken, .tools_used = tools_used, .learned = false, .allocator = self.allocator };
+            }
+        }
+
+        if (self_reflection_mod.SelfReflection.isFeedback(user_input)) {
+            const feedback_resp = self.self_reflection.receiveFeedback(user_input) catch null;
+            if (feedback_resp) |r| {
+                try tools_used.append("feedback");
+                steps_taken += 1;
+                self.context.addMessage("assistant", r) catch {};
+                return .{ .answer = r, .steps_taken = steps_taken, .tools_used = tools_used, .learned = true, .allocator = self.allocator };
             }
         }
 
