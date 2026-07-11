@@ -17,6 +17,7 @@ const summarizer = @import("summarizer.zig");
 const brain_mod = @import("brain.zig");
 const ltm_mod = @import("long_term_memory.zig");
 const thinking_mod = @import("thinking.zig");
+const reasoning_mod = @import("reasoning.zig");
 
 pub const AgentConfig = struct {
     name: []const u8 = "Super Agent",
@@ -52,6 +53,7 @@ pub const SuperAgent = struct {
     brain: brain_mod.Brain,
     long_term_memory: ltm_mod.LongTermMemory,
     thinking_engine: thinking_mod.ThinkingEngine,
+    reasoning_engine: reasoning_mod.ReasoningEngine,
 
     pub fn init(allocator: std.mem.Allocator, config: AgentConfig) !SuperAgent {
         var agent = SuperAgent{
@@ -70,6 +72,7 @@ pub const SuperAgent = struct {
                 .file_path = "",
             },
             .thinking_engine = thinking_mod.ThinkingEngine.init(allocator),
+            .reasoning_engine = reasoning_mod.ReasoningEngine.init(allocator),
         };
 
         // تدريب n-gram على corpus مدمج
@@ -341,11 +344,14 @@ pub const SuperAgent = struct {
 
     /// توليد رد باستخدام النموذج المحلي
     fn generateResponse(self: *SuperAgent, input: []const u8) ![]u8 {
-        // استخدام محرك التفكير - يحلل، يفكر، يرد
-        return self.thinking_engine.think(input, &self.context, &self.long_term_memory) catch {
-            // fallback للعقل المدبر
-            return self.brain.respond(input, &self.context) catch {
-                return self.fallbackResponse(input);
+        // محرك الاستدلال المنطقي والإبداعي - الأكثر تقدماً
+        return self.reasoning_engine.reason(input, &self.context, &self.long_term_memory) catch {
+            // fallback لمحرك التفكير
+            return self.thinking_engine.think(input, &self.context, &self.long_term_memory) catch {
+                // fallback للعقل المدبر
+                return self.brain.respond(input, &self.context) catch {
+                    return self.fallbackResponse(input);
+                };
             };
         };
     }
