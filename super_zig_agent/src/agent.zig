@@ -14,6 +14,7 @@ const ngram = @import("ngram.zig");
 const responses = @import("responses.zig");
 const sentiment_mod = @import("sentiment.zig");
 const summarizer = @import("summarizer.zig");
+const brain_mod = @import("brain.zig");
 
 pub const AgentConfig = struct {
     name: []const u8 = "Super Agent",
@@ -46,6 +47,7 @@ pub const SuperAgent = struct {
     rng: std.Random.DefaultPrng,
     context: context_mod.ConversationContext,
     ngram_model: ngram.NGramModel,
+    brain: brain_mod.Brain,
 
     pub fn init(allocator: std.mem.Allocator, config: AgentConfig) !SuperAgent {
         var agent = SuperAgent{
@@ -57,6 +59,7 @@ pub const SuperAgent = struct {
             .rng = nn.tensor.createRng(@bitCast(std.time.timestamp())),
             .context = context_mod.ConversationContext.init(allocator),
             .ngram_model = ngram.NGramModel.init(allocator),
+            .brain = brain_mod.Brain.init(allocator),
         };
 
         // تدريب n-gram على corpus مدمج
@@ -74,6 +77,7 @@ pub const SuperAgent = struct {
         self.memory.deinit();
         self.context.deinit();
         self.ngram_model.deinit();
+        self.brain.deinit();
     }
 
     /// تحميل النموذج والـ tokenizer
@@ -323,9 +327,10 @@ pub const SuperAgent = struct {
 
     /// توليد رد باستخدام النموذج المحلي
     fn generateResponse(self: *SuperAgent, input: []const u8) ![]u8 {
-        // n-gram و transformer معطلان - ينتجان نصاً غير مفهوم
-        // الاعتماد كلياً على قاعدة المعرفة + الأدوات + ردود fallback الذكية
-        return self.fallbackResponse(input);
+        // استخدام العقل المدبر - يحلل النية ويرد بشكل بشري
+        return self.brain.respond(input, &self.context) catch {
+            return self.fallbackResponse(input);
+        };
     }
 
     /// فحص جودة الرد - هل هو متماسك؟
