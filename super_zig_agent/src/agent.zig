@@ -18,6 +18,7 @@ const brain_mod = @import("brain.zig");
 const ltm_mod = @import("long_term_memory.zig");
 const thinking_mod = @import("thinking.zig");
 const reasoning_mod = @import("reasoning.zig");
+const code_analyzer = @import("code_analyzer.zig");
 
 pub const AgentConfig = struct {
     name: []const u8 = "Super Agent",
@@ -158,6 +159,24 @@ pub const SuperAgent = struct {
 
         // استخراج وحفظ معلومات في الذاكرة طويلة المدى
         self.long_term_memory.extractAndStore(user_input);
+
+        // 0.0. طلب كود برمجي
+        if (code_analyzer.CodeAnalyzer.isCodeRequest(user_input)) {
+            var analyzer = code_analyzer.CodeAnalyzer.init(self.allocator);
+            const code_result = analyzer.generate(user_input) catch null;
+            if (code_result) |r| {
+                try tools_used.append("code_generator");
+                steps_taken += 1;
+                self.context.addMessage("assistant", r) catch {};
+                return .{
+                    .answer = r,
+                    .steps_taken = steps_taken,
+                    .tools_used = tools_used,
+                    .learned = false,
+                    .allocator = self.allocator,
+                };
+            }
+        }
 
         // 0.1. طلب ملخص المحادثة
         if (std.mem.indexOf(u8, user_input, "ملخص") != null or
