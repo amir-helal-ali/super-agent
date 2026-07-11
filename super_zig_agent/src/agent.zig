@@ -16,6 +16,7 @@ const sentiment_mod = @import("sentiment.zig");
 const summarizer = @import("summarizer.zig");
 const brain_mod = @import("brain.zig");
 const ltm_mod = @import("long_term_memory.zig");
+const thinking_mod = @import("thinking.zig");
 
 pub const AgentConfig = struct {
     name: []const u8 = "Super Agent",
@@ -50,6 +51,7 @@ pub const SuperAgent = struct {
     ngram_model: ngram.NGramModel,
     brain: brain_mod.Brain,
     long_term_memory: ltm_mod.LongTermMemory,
+    thinking_engine: thinking_mod.ThinkingEngine,
 
     pub fn init(allocator: std.mem.Allocator, config: AgentConfig) !SuperAgent {
         var agent = SuperAgent{
@@ -67,6 +69,7 @@ pub const SuperAgent = struct {
                 .facts = std.ArrayList(ltm_mod.Fact).init(allocator),
                 .file_path = "",
             },
+            .thinking_engine = thinking_mod.ThinkingEngine.init(allocator),
         };
 
         // تدريب n-gram على corpus مدمج
@@ -338,9 +341,12 @@ pub const SuperAgent = struct {
 
     /// توليد رد باستخدام النموذج المحلي
     fn generateResponse(self: *SuperAgent, input: []const u8) ![]u8 {
-        // استخدام العقل المدبر - يحلل النية ويرد بشكل بشري
-        return self.brain.respond(input, &self.context) catch {
-            return self.fallbackResponse(input);
+        // استخدام محرك التفكير - يحلل، يفكر، يرد
+        return self.thinking_engine.think(input, &self.context, &self.long_term_memory) catch {
+            // fallback للعقل المدبر
+            return self.brain.respond(input, &self.context) catch {
+                return self.fallbackResponse(input);
+            };
         };
     }
 
