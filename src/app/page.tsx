@@ -1,13 +1,51 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Send, Sparkles, Plus, Trash2, Settings, Cpu, Brain, MessageSquare, Calculator, Clock, Languages, Zap, Loader2, Server, BookOpen } from 'lucide-react'
+import { Send, Sparkles, Plus, Trash2, Settings, Cpu, Brain, MessageSquare, Calculator, Clock, Languages, Zap, Loader2, Server, BookOpen, Code, Cloud, DollarSign } from 'lucide-react'
 import { agentApi, type SessionInfo, type Stats } from '@/lib/agent-api'
 
 interface Message { role: 'user' | 'assistant'; content: string; tools?: string[]; timestamp: number }
 
+// Simple markdown renderer for code blocks and formatting
+function formatMessage(text: string) {
+  const parts = text.split(/(```[\s\S]*?```)/g)
+  return parts.map((part, i) => {
+    if (part.startsWith('```')) {
+      const lines = part.replace(/```\n?/g, '').split('\n')
+      const lang = lines[0] || ''
+      const code = lines.slice(lang ? 1 : 0).join('\n')
+      return (
+        <pre key={i} className="bg-zinc-950 border border-zinc-800 rounded-lg p-4 my-2 overflow-x-auto text-right" dir="ltr">
+          {lang && <div className="text-xs text-emerald-400 mb-2">{lang}</div>}
+          <code className="text-sm text-zinc-300 font-mono whitespace-pre">{code}</code>
+        </pre>
+      )
+    }
+    // Render text with basic formatting
+    const lines = part.split('\n')
+    return (
+      <span key={i}>
+        {lines.map((line, j) => (
+          <span key={j}>
+            {line.split(/(\*\*[^*]+\*\*|•[^•\n]+)/g).map((seg, k) => {
+              if (seg.startsWith('**') && seg.endsWith('**')) {
+                return <strong key={k} className="font-bold text-emerald-400">{seg.slice(2, -2)}</strong>
+              }
+              if (seg.startsWith('•')) {
+                return <span key={k} className="block py-0.5">{seg}</span>
+              }
+              return seg
+            })}
+            {j < lines.length - 1 && <br/>}
+          </span>
+        ))}
+      </span>
+    )
+  })
+}
+
 export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([{ role: 'assistant', content: 'مرحبا! أنا Super Agent - وكيل ذكاء اصطناعي خارق مبني بلغة Zig.\n\nاكتب "مساعدة" لعرض الأوامر المتاحة.', timestamp: Date.now() }])
+  const [messages, setMessages] = useState<Message[]>([{ role: 'assistant', content: 'مرحبا! أنا Super Agent v12.0 🧠✨\n\nوكيل ذكاء اصطناعي خارق مبني بلغة Zig.\nأفكر، أتعلم، أتذكر، وأحل المشكلات.\n\nاكتب "مساعدة" لعرض الأوامر المتاحة.', timestamp: Date.now() }])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [sessions, setSessions] = useState<SessionInfo[]>([])
@@ -58,10 +96,12 @@ export default function Home() {
     { label: 'وقت', icon: Clock, msg: 'كم الساعة' },
     { label: 'EN', icon: Languages, msg: 'ترجم للإنجليزية: مرحبا عالم' },
     { label: 'FR', icon: Languages, msg: 'ترجم للفرنسية: مرحبا عالم' },
-    { label: 'ذكاء اصطناعي', icon: Brain, msg: 'ما هو الذكاء الاصطناعي' },
+    { label: 'ذكاء', icon: Brain, msg: 'ما هو الذكاء الاصطناعي' },
     { label: 'Zig', icon: Cpu, msg: 'ما هي لغة Zig' },
-    { label: 'طقس', icon: Zap, msg: 'طقس في القاهرة' },
-    { label: 'دولار', icon: Zap, msg: 'سعر الدولار' },
+    { label: 'طقس', icon: Cloud, msg: 'طقس في القاهرة' },
+    { label: 'دولار', icon: DollarSign, msg: 'سعر الدولار' },
+    { label: 'كود', icon: Code, msg: 'اكتب كود Python لحساب المضروب' },
+    { label: 'مشكلة', icon: Zap, msg: 'عندي مشكلة في الكود' },
     { label: 'نكتة', icon: MessageSquare, msg: 'اخبرني نكتة' },
   ]
 
@@ -86,7 +126,7 @@ export default function Home() {
         <header className="border-b border-zinc-800 p-4 flex items-center justify-between bg-zinc-900">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center"><Sparkles className="w-5 h-5 text-white" /></div>
-            <div><h1 className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Super Agent</h1><p className="text-xs text-zinc-500">وكيل ذكاء اصطناعي خارق - Zig Edition</p></div>
+            <div><h1 className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Super Agent v12</h1><p className="text-xs text-zinc-500">7 محركات ذكاء • 14 أداة • 100+ موضوع</p></div>
           </div>
           <div className="flex items-center gap-2">
             {stats && (
@@ -104,12 +144,12 @@ export default function Home() {
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-start' : 'justify-end'}`}>
               <div className={`max-w-[80%] rounded-2xl p-4 ${msg.role === 'user' ? 'bg-emerald-600 text-white' : 'bg-zinc-900 border border-zinc-800'}`}>
-                <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{msg.content}</p>
+                <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">{formatMessage(msg.content)}</div>
                 {msg.tools && msg.tools.length > 0 && <div className="mt-2 pt-2 border-t border-zinc-700/50 flex flex-wrap gap-1">{msg.tools.map((t, j) => <span key={j} className="text-xs px-2 py-0.5 rounded bg-zinc-800 text-emerald-400">{t}</span>)}</div>}
               </div>
             </div>
           ))}
-          {loading && <div className="flex justify-end"><div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm text-zinc-500">جاري المعالجة...</span></div></div>}
+          {loading && <div className="flex justify-end"><div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm text-zinc-500">جاري التفكير...</span></div></div>}
         </div>
 
         <div className="px-4 py-2 border-t border-zinc-800 bg-zinc-900">
@@ -136,19 +176,30 @@ export default function Home() {
             <div className="flex justify-between"><span className="text-zinc-400">حالة الخادم:</span><span>{backendOnline ? '✅ متصل' : '❌ غير متصل'}</span></div>
           </div>
           <div className="pt-4 border-t border-zinc-800">
-            <h4 className="text-sm font-medium mb-2 text-zinc-400">الأوامر</h4>
+            <h4 className="text-sm font-medium mb-2 text-zinc-400">محركات الذكاء (7)</h4>
             <div className="text-xs space-y-1 text-zinc-500">
-              <div className="cursor-pointer hover:text-emerald-400" onClick={() => sendMessage('مساعدة')}>• مساعدة</div>
-              <div className="cursor-pointer hover:text-emerald-400" onClick={() => sendMessage('sqrt(64) + 5')}>• sqrt(64) + 5</div>
-              <div className="cursor-pointer hover:text-emerald-400" onClick={() => sendMessage('كم الساعة')}>• كم الساعة</div>
-              <div className="cursor-pointer hover:text-emerald-400" onClick={() => sendMessage('ما هو الذكاء الاصطناعي')}>• ما هو الذكاء الاصطناعي</div>
-              <div className="cursor-pointer hover:text-emerald-400" onClick={() => sendMessage('من انت')}>• من انت</div>
+              <div>🧠 التقييم الذاتي</div>
+              <div>🧩 محلل المشكلات</div>
+              <div>💻 مولّد الكود</div>
+              <div>🤔 محرك الاستدلال</div>
+              <div>💭 محرك التفكير</div>
+              <div>❤️ العقل المدبر</div>
+              <div>💾 الذاكرة الدائمة</div>
+            </div>
+          </div>
+          <div className="pt-4 border-t border-zinc-800">
+            <h4 className="text-sm font-medium mb-2 text-zinc-400">أوامر سريعة</h4>
+            <div className="text-xs space-y-1 text-zinc-500">
+              <div className="cursor-pointer hover:text-emerald-400" onClick={() => sendMessage('تقييم أدائك')}>• تقييم أدائك</div>
+              <div className="cursor-pointer hover:text-emerald-400" onClick={() => sendMessage('ملخص')}>• ملخص المحادثة</div>
+              <div className="cursor-pointer hover:text-emerald-400" onClick={() => sendMessage('اكتب شعر')}>• اكتب شعر</div>
+              <div className="cursor-pointer hover:text-emerald-400" onClick={() => sendMessage('اكتب كود Python لحساب المضروب')}>• توليد كود</div>
             </div>
           </div>
           <div className="text-xs space-y-1 text-zinc-500 pt-4 border-t border-zinc-800">
             <div>Backend: Zig 0.14 (port 8080)</div>
             <div>Frontend: Next.js + React</div>
-            <div>Model: Mini-GPT Transformer</div>
+            <div>Model: Mini-GPT (trained)</div>
             <div>RAM: 2GB, No GPU</div>
           </div>
         </aside>
