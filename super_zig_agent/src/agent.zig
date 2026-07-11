@@ -408,16 +408,33 @@ pub const SuperAgent = struct {
 
     /// توليد رد باستخدام النموذج المحلي
     fn generateResponse(self: *SuperAgent, input: []const u8) ![]u8 {
-        // محرك الاستدلال المنطقي والإبداعي - الأكثر تقدماً
-        return self.reasoning_engine.reason(input, &self.context, &self.long_term_memory) catch {
-            // fallback لمحرك التفكير
-            return self.thinking_engine.think(input, &self.context, &self.long_term_memory) catch {
-                // fallback للعقل المدبر
-                return self.brain.respond(input, &self.context) catch {
-                    return self.fallbackResponse(input);
-                };
-            };
-        };
+        // 1. محرك الاستدلال (الأكثر تقدماً)
+        const reasoning_result = self.reasoning_engine.reason(input, &self.context, &self.long_term_memory) catch null;
+        if (reasoning_result) |r| {
+            if (r.len > 5) {
+                self.self_reflection.logResponse(input, r, &.{}) catch {};
+                return r;
+            }
+            self.allocator.free(r);
+        }
+
+        // 2. محرك التفكير
+        const thinking_result = self.thinking_engine.think(input, &self.context, &self.long_term_memory) catch null;
+        if (thinking_result) |r| {
+            if (r.len > 5) {
+                return r;
+            }
+            self.allocator.free(r);
+        }
+
+        // 3. العقل المدبر
+        const brain_result = self.brain.respond(input, &self.context) catch null;
+        if (brain_result) |r| {
+            return r;
+        }
+
+        // 4. fallback
+        return self.fallbackResponse(input);
     }
 
     /// فحص جودة الرد - هل هو متماسك؟
