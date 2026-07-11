@@ -15,6 +15,7 @@ const responses = @import("responses.zig");
 const sentiment_mod = @import("sentiment.zig");
 const summarizer = @import("summarizer.zig");
 const brain_mod = @import("brain.zig");
+const ltm_mod = @import("long_term_memory.zig");
 
 pub const AgentConfig = struct {
     name: []const u8 = "Super Agent",
@@ -48,6 +49,7 @@ pub const SuperAgent = struct {
     context: context_mod.ConversationContext,
     ngram_model: ngram.NGramModel,
     brain: brain_mod.Brain,
+    long_term_memory: ltm_mod.LongTermMemory,
 
     pub fn init(allocator: std.mem.Allocator, config: AgentConfig) !SuperAgent {
         var agent = SuperAgent{
@@ -60,6 +62,11 @@ pub const SuperAgent = struct {
             .context = context_mod.ConversationContext.init(allocator),
             .ngram_model = ngram.NGramModel.init(allocator),
             .brain = brain_mod.Brain.init(allocator),
+            .long_term_memory = ltm_mod.LongTermMemory.init(allocator, "data/memory/long_term.txt") catch ltm_mod.LongTermMemory{
+                .allocator = allocator,
+                .facts = std.ArrayList(ltm_mod.Fact).init(allocator),
+                .file_path = "",
+            },
         };
 
         // تدريب n-gram على corpus مدمج
@@ -78,6 +85,7 @@ pub const SuperAgent = struct {
         self.context.deinit();
         self.ngram_model.deinit();
         self.brain.deinit();
+        self.long_term_memory.deinit();
     }
 
     /// تحميل النموذج والـ tokenizer
@@ -141,6 +149,9 @@ pub const SuperAgent = struct {
 
         // حفظ في السياق
         self.context.addMessage("user", user_input) catch {};
+
+        // استخراج وحفظ معلومات في الذاكرة طويلة المدى
+        self.long_term_memory.extractAndStore(user_input);
 
         // 0.1. طلب ملخص المحادثة
         if (std.mem.indexOf(u8, user_input, "ملخص") != null or
