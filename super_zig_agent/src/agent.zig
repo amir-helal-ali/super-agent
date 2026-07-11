@@ -323,22 +323,8 @@ pub const SuperAgent = struct {
 
     /// توليد رد باستخدام النموذج المحلي
     fn generateResponse(self: *SuperAgent, input: []const u8) ![]u8 {
-        // 1. محاولة استخدام n-gram model
-        if (self.ngram_model.trained) {
-            const ngram_result = self.ngram_model.generate(self.allocator, input, 15) catch null;
-            if (ngram_result) |r| {
-                // فحص جودة الرد
-                if (self.isResponseCoherent(r, input)) {
-                    return r;
-                }
-                self.allocator.free(r);
-            }
-        }
-
-        // 2. محاولة استخدام transformer model (معطل مؤقتاً - ينتج نصاً غير مفهوم)
-        // TODO: إعادة تفعيل بعد تدريب كافٍ
-
-        // 3. fallback
+        // n-gram و transformer معطلان - ينتجان نصاً غير مفهوم
+        // الاعتماد كلياً على قاعدة المعرفة + الأدوات + ردود fallback الذكية
         return self.fallbackResponse(input);
     }
 
@@ -432,11 +418,48 @@ pub const SuperAgent = struct {
         }
 
         // 6. استرجاع الاسم
-        if (std.mem.indexOf(u8, input, "ما اسمي") != null or std.mem.indexOf(u8, input, "هل تعرف اسمي") != null) {
+        if (std.mem.indexOf(u8, input, "ما اسمي") != null or std.mem.indexOf(u8, input, "هل تعرف اسمي") != null or
+            std.mem.indexOf(u8, input, "ما هو اسمي") != null)
+        {
             if (self.context.getUserName()) |name| {
                 return std.fmt.allocPrint(self.allocator, "نعم! اسمك {s}. 😊", .{name});
             }
             return self.allocator.dupe(u8, "لا أعرف اسمك بعد. أخبرني: 'اسمي أحمد'");
+        }
+
+        // 6.5. تعريف الاسم - "اسمي امير" أو "انا اسمي امير"
+        if (std.mem.indexOf(u8, input, "اسمي") != null or std.mem.indexOf(u8, input, "أنا اسمي") != null or
+            std.mem.indexOf(u8, input, "انا اسمي") != null)
+        {
+            // الاسم تم حفظه بالفعل في context.addMessage -> extractUserInfo
+            if (self.context.getUserName()) |name| {
+                return std.fmt.allocPrint(self.allocator, "سعدت بمعرفتك {s}! 😊 كيف يمكنني مساعدتك؟", .{name});
+            }
+        }
+
+        // 6.6. تعريف الموقع - "أعيش في" أو "اسكن في"
+        if (std.mem.indexOf(u8, input, "أعيش في") != null or std.mem.indexOf(u8, input, "اسكن في") != null or
+            std.mem.indexOf(u8, input, "اسكن") != null or std.mem.indexOf(u8, input, "أعيش") != null)
+        {
+            if (self.context.getUserLocation()) |loc| {
+                return std.fmt.allocPrint(self.allocator, "ممتاز! {s} مدينة جميلة. 🌍 كيف أساعدك؟", .{loc});
+            }
+        }
+
+        // 6.7. موافقة وتأكيد - "نعم", "ok", "حسنا", "تمام"
+        if (std.mem.eql(u8, input, "نعم") or std.mem.eql(u8, input, "ok") or
+            std.mem.eql(u8, input, "حسنا") or std.mem.eql(u8, input, "تمام") or
+            std.mem.eql(u8, input, "yes") or std.mem.eql(u8, input, "حاضر") or
+            std.mem.eql(u8, input, "أهلا"))
+        {
+            const ack_replies = [_][]const u8{
+                "تمام! 😊 ماذا تريد أن نفعل؟",
+                "حسناً! أنا جاهز. ما الخطوة التالية؟",
+                "ممتاز! هل لديك سؤال آخر؟",
+            };
+            var rng = std.Random.DefaultPrng.init(@bitCast(std.time.timestamp()));
+            const idx = rng.random().uintLessThan(usize, ack_replies.len);
+            return self.allocator.dupe(u8, ack_replies[idx]);
         }
 
         // 7. رد ذكي مع اقتراحات
