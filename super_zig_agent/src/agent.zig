@@ -19,6 +19,7 @@ const ltm_mod = @import("long_term_memory.zig");
 const thinking_mod = @import("thinking.zig");
 const reasoning_mod = @import("reasoning.zig");
 const code_analyzer = @import("code_analyzer.zig");
+const problem_solver = @import("problem_solver.zig");
 
 pub const AgentConfig = struct {
     name: []const u8 = "Super Agent",
@@ -166,6 +167,24 @@ pub const SuperAgent = struct {
             const code_result = analyzer.generate(user_input) catch null;
             if (code_result) |r| {
                 try tools_used.append("code_generator");
+                steps_taken += 1;
+                self.context.addMessage("assistant", r) catch {};
+                return .{
+                    .answer = r,
+                    .steps_taken = steps_taken,
+                    .tools_used = tools_used,
+                    .learned = false,
+                    .allocator = self.allocator,
+                };
+            }
+        }
+
+        // 0.05. حل المشكلات
+        if (problem_solver.ProblemSolver.isProblemSolving(user_input)) {
+            var solver = problem_solver.ProblemSolver.init(self.allocator);
+            const solution = solver.solve(user_input) catch null;
+            if (solution) |r| {
+                try tools_used.append("problem_solver");
                 steps_taken += 1;
                 self.context.addMessage("assistant", r) catch {};
                 return .{
