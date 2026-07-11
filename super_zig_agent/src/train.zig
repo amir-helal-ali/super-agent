@@ -95,9 +95,25 @@ pub fn main() !void {
     std.debug.print("[train] training on built-in text corpus...\n", .{});
     try trainOnBuiltinCorpus(&trainer);
 
-    // تدريب من الويب
+    // التعلم التلقائي من كل المصادر العالمية
+    const auto_learner_mod = @import("auto_learner.zig");
+    std.debug.print("[train] starting auto-learner from {d} global sources...\n", .{auto_learner_mod.GLOBAL_SOURCES.len});
+
+    var auto_learner = auto_learner_mod.AutoLearner.init(
+        allocator,
+        &trainer,
+        &memory,
+        &tokenizer,
+        &model,
+    );
+
+    auto_learner.learnFromAllSources() catch |err| {
+        std.debug.print("[train] auto-learner error: {}\n", .{err});
+    };
+
+    // تدريب من الويب (URLs مخصصة)
     if (urls.items.len > 0) {
-        std.debug.print("[train] training from {d} URLs...\n", .{urls.items.len});
+        std.debug.print("[train] training from {d} custom URLs...\n", .{urls.items.len});
         trainer.trainFromWeb(urls.items, max_pages) catch |err| {
             std.debug.print("[train] web training error: {}\n", .{err});
         };

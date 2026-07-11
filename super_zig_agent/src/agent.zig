@@ -21,6 +21,7 @@ const reasoning_mod = @import("reasoning.zig");
 const code_analyzer = @import("code_analyzer.zig");
 const problem_solver = @import("problem_solver.zig");
 const self_reflection_mod = @import("self_reflection.zig");
+const auto_learner_mod = @import("auto_learner.zig");
 
 pub const AgentConfig = struct {
     name: []const u8 = "Super Agent",
@@ -58,6 +59,7 @@ pub const SuperAgent = struct {
     thinking_engine: thinking_mod.ThinkingEngine,
     reasoning_engine: reasoning_mod.ReasoningEngine,
     self_reflection: self_reflection_mod.SelfReflection,
+    auto_learner: ?auto_learner_mod.AutoLearner,
 
     pub fn init(allocator: std.mem.Allocator, config: AgentConfig) !SuperAgent {
         var agent = SuperAgent{
@@ -78,6 +80,7 @@ pub const SuperAgent = struct {
             .thinking_engine = thinking_mod.ThinkingEngine.init(allocator),
             .reasoning_engine = reasoning_mod.ReasoningEngine.init(allocator),
             .self_reflection = self_reflection_mod.SelfReflection.init(allocator),
+            .auto_learner = null,
         };
 
         // تدريب n-gram على corpus مدمج
@@ -164,6 +167,11 @@ pub const SuperAgent = struct {
 
         // استخراج وحفظ معلومات في الذاكرة طويلة المدى
         self.long_term_memory.extractAndStore(user_input);
+
+        // التعلم من كل محادثة (تحديث تلقائي للنموذج)
+        if (self.auto_learner) |*learner| {
+            learner.learnFromConversation(user_input, "");
+        }
 
         // 0.0. طلب كود برمجي
         if (code_analyzer.CodeAnalyzer.isCodeRequest(user_input)) {
